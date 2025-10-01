@@ -5,6 +5,7 @@ import { emitTelemetry } from '../../services/telemetry';
 import { UniversalNodeEngine } from '../../engine/runtime';
 import { ElectricalPack } from '../../domain/electrical/pack';
 import type { GraphData, NodeInstance, Edge } from '../../engine/types';
+import { compileElectricalRules, fetchEnabledRules } from '../../services/rules';
 
 interface Component {
   id: string;
@@ -224,6 +225,22 @@ const SimpleElectricalBuilder: React.FC = () => {
     const { ruleResults } = engine.evaluate(graph, signals);
     return ruleResults;
   }, [engine, toGraph]);
+
+  // Dynamic rules loader and evaluation
+  const [dynamicEval, setDynamicEval] = useState<null | ((graph: GraphData, signals: any) => any[])>(null);
+  useEffect(() => {
+    fetchEnabledRules('electrical')
+      .then(rows => setDynamicEval(compileElectricalRules(rows)))
+      .catch(() => setDynamicEval(null));
+  }, []);
+
+  const combinedEngineResults = useMemo(() => {
+    const graph = toGraph();
+    const signals = engine.newSignals();
+    const base = engine.evaluate(graph, signals).ruleResults;
+    const dyn = dynamicEval ? dynamicEval(graph, signals) : [];
+    return [...base, ...dyn];
+  }, [engine, dynamicEval, toGraph]);
 
   // Build circuit validation requests from current graph
   const buildCircuitRequests = () => {
@@ -529,22 +546,22 @@ const SimpleElectricalBuilder: React.FC = () => {
         <div className="w-80 bg-white border-l-4 border-purple-300 p-4 shadow-lg overflow-y-auto">
           <h2 className="text-lg font-bold mb-4 text-gray-800">What's Happening?</h2>
 
-          {warnings.length > 0 && (
+          {combinedEngineResults.some((r:any)=>!r.passes) && (
             <div className="mb-4 p-3 bg-red-50 border-2 border-red-300 rounded-lg">
               <h3 className="font-bold text-red-700 mb-2 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 Problems Found!
               </h3>
-              {warnings.map((w, i) => (
-                <div key={i} className="text-sm text-red-700 mb-1">{w}</div>
+              {combinedEngineResults.filter((r:any)=>!r.passes).map((r:any) => (
+                <div key={r.id} className="text-sm text-red-700 mb-1">{r.constraint}</div>
               ))}
             </div>
           )}
 
-          {engineResults.length > 0 && (
+          {combinedEngineResults.length > 0 && (
             <div className="mb-4 p-3 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
               <h3 className="font-bold text-indigo-700 mb-2">Engine Checks</h3>
-              {engineResults.map((r: any) => (
+              {combinedEngineResults.map((r: any) => (
                 <div key={r.id} className={`text-xs ${r.passes ? 'text-green-700' : r.severity === 'critical' ? 'text-red-700' : 'text-yellow-700'}`}>
                   • {r.constraint}: {r.passes ? 'PASS' : 'FAIL'}
                 </div>
@@ -552,7 +569,7 @@ const SimpleElectricalBuilder: React.FC = () => {
             </div>
           )}
 
-          {warnings.length === 0 && components.length > 0 && (
+          {combinedEngineResults.every((r:any)=>r.passes) && components.length > 0 && (
             <div className="mb-4 p-3 bg-green-50 border-2 border-green-300 rounded-lg">
               <h3 className="font-bold text-green-700 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
@@ -612,3 +629,5 @@ const SimpleElectricalBuilder: React.FC = () => {
 };
 
 export default SimpleElectricalBuilder;
+
+
