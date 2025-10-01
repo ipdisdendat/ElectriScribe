@@ -1,7 +1,10 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Zap, Plus, Trash2, Play, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { pythonAnalysisClient } from '../../services/python-analysis-client';
 import { emitTelemetry } from '../../services/telemetry';
+import { UniversalNodeEngine } from '../../engine/runtime';
+import { ElectricalPack } from '../../domain/electrical/pack';
+import type { GraphData, NodeInstance, Edge } from '../../engine/types';
 
 interface Component {
   id: string;
@@ -164,6 +167,63 @@ const SimpleElectricalBuilder: React.FC = () => {
   };
 
   const { flow, warnings } = calculatePowerFlow();
+
+  // Universal Node Engine integration
+  const engine = useMemo(() => new UniversalNodeEngine([ElectricalPack]), []);
+
+  const toGraph = useCallback((): GraphData => {
+    const mapType = (t: Component['type']): string => {
+      switch (t) {
+        case 'panel': return 'electrical.panel';
+        case 'circuit': return 'electrical.breaker';
+        case 'light': return 'electrical.load.light';
+        case 'outlet': return 'electrical.load.outlet';
+        case 'appliance': return 'electrical.load.appliance';
+        case 'motor': return 'electrical.load.motor';
+        default: return t as any;
+      }
+    };
+
+    const nodes: NodeInstance[] = components.map(c => ({
+      id: c.id,
+      type: mapType(c.type),
+      state: ((): any => {
+        if (c.type === 'panel') return { maxAmps: c.maxAmps ?? 200 };
+        if (c.type === 'circuit') return { maxAmps: c.maxAmps ?? 20 };
+        return { amps: c.amps ?? 1 };
+      })(),
+      x: c.x,
+      y: c.y,
+    }));
+
+    const outPort = (type: string): string => {
+      if (type === 'electrical.panel') return 'line';
+      if (type === 'electrical.breaker') return 'out';
+      return 'out';
+    };
+    const inPort = (_type: string): string => 'in';
+
+    const edges: Edge[] = wires.map(w => {
+      const fromNode = nodes.find(n => n.id === w.from);
+      const toNode = nodes.find(n => n.id === w.to);
+      const fromType = fromNode?.type || '';
+      const toType = toNode?.type || '';
+      return {
+        id: w.id,
+        from: { nodeId: w.from, portId: outPort(fromType) },
+        to: { nodeId: w.to, portId: inPort(toType) },
+      };
+    });
+
+    return { nodes, edges };
+  }, [components, wires]);
+
+  const engineResults = useMemo(() => {
+    const graph = toGraph();
+    const signals = engine.newSignals();
+    const { ruleResults } = engine.evaluate(graph, signals);
+    return ruleResults;
+  }, [engine, toGraph]);
 
   // Build circuit validation requests from current graph
   const buildCircuitRequests = () => {
@@ -477,6 +537,17 @@ const SimpleElectricalBuilder: React.FC = () => {
               </h3>
               {warnings.map((w, i) => (
                 <div key={i} className="text-sm text-red-700 mb-1">{w}</div>
+              ))}
+            </div>
+          )}
+
+          {engineResults.length > 0 && (
+            <div className="mb-4 p-3 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
+              <h3 className="font-bold text-indigo-700 mb-2">Engine Checks</h3>
+              {engineResults.map((r: any) => (
+                <div key={r.id} className={`text-xs ${r.passes ? 'text-green-700' : r.severity === 'critical' ? 'text-red-700' : 'text-yellow-700'}`}>
+                  • {r.constraint}: {r.passes ? 'PASS' : 'FAIL'}
+                </div>
               ))}
             </div>
           )}
