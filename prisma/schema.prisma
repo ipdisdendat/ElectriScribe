@@ -1,0 +1,162 @@
+// Prisma schema for ElectriScribe (Phase 1 foundation)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TECHNICIAN
+  VIEWER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  sites     Site[]
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  owner     User     @relation(fields: [ownerId], references: [id])
+  ownerId   String
+  name      String
+  address   String?
+  type      String?
+  createdAt DateTime @default(now())
+  panels    Panel[]
+  logs      ServiceLog[]
+}
+
+model Panel {
+  id            String   @id @default(cuid())
+  site          Site     @relation(fields: [siteId], references: [id])
+  siteId        String
+  name          String
+  capacityAmps  Int
+  voltage       Int
+  circuits      Circuit[]
+}
+
+model Circuit {
+  id          String       @id @default(cuid())
+  panel       Panel        @relation(fields: [panelId], references: [id])
+  panelId     String
+  number      Int
+  name        String
+  breakerSize Int?
+  wireGauge   String?
+  measures    Measurement[]
+  alerts      Alert[]
+
+  @@unique([panelId, number])
+}
+
+model Issue {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  severity  Int
+  createdAt DateTime @default(now())
+  symptoms  Symptom[]
+  causes    RootCause[]
+  solutions Solution[]
+}
+
+model Symptom {
+  id       String @id @default(cuid())
+  issue    Issue  @relation(fields: [issueId], references: [id])
+  issueId  String
+  description String
+}
+
+model RootCause {
+  id       String @id @default(cuid())
+  issue    Issue  @relation(fields: [issueId], references: [id])
+  issueId  String
+  description String
+}
+
+enum SolutionType {
+  IMMEDIATE
+  SMART
+  INFRASTRUCTURE
+}
+
+model Solution {
+  id           String       @id @default(cuid())
+  issue        Issue        @relation(fields: [issueId], references: [id])
+  issueId      String
+  type         SolutionType
+  description  String
+  costEstimate Int?
+  difficulty   Int?
+  safetyRating Int?
+}
+
+model Measurement {
+  id           String   @id @default(cuid())
+  circuit      Circuit  @relation(fields: [circuitId], references: [id])
+  circuitId    String
+  timestamp    DateTime @default(now())
+  current      Float?
+  voltage      Float?
+  powerFactor  Float?
+  thd          Float?
+
+  @@index([timestamp])
+  @@index([circuitId, timestamp])
+}
+
+model Alert {
+  id           String   @id @default(cuid())
+  circuit      Circuit  @relation(fields: [circuitId], references: [id])
+  circuitId    String
+  type         String
+  severity     Int
+  message      String
+  timestamp    DateTime @default(now())
+  resolved     Boolean  @default(false)
+  resolvedAt   DateTime?
+  acknowledgedAt DateTime?
+}
+
+model ServiceLog {
+  id          String   @id @default(cuid())
+  site        Site     @relation(fields: [siteId], references: [id])
+  siteId      String
+  technician  String
+  timestamp   DateTime @default(now())
+  description String
+  attachments Attachment[]
+}
+
+model Attachment {
+  id              String   @id @default(cuid())
+  log             ServiceLog @relation(fields: [logId], references: [id])
+  logId           String
+  fileUrl         String
+  fileType        String
+  sizeBytes       Int?
+  storageProvider String?
+  checksum        String?
+}
+
+model MaintenanceSchedule {
+  id         String   @id @default(cuid())
+  circuit    Circuit  @relation(fields: [circuitId], references: [id])
+  circuitId  String
+  task       String
+  frequency  String
+  lastDone   DateTime?
+  nextDue    DateTime?
+}
+
