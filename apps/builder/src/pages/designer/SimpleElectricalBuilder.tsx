@@ -44,6 +44,7 @@ const SimpleElectricalBuilder: React.FC = () => {
   const [proMode, setProMode] = useState(false);
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const addComponent = (type: string) => {
@@ -318,6 +319,13 @@ const SimpleElectricalBuilder: React.FC = () => {
       const responses = await Promise.all(reqs.map((r) => pythonAnalysisClient.validateCircuit(r)));
       setResults(responses);
       emitTelemetry({ event_type: 'builder_test_results', payload: { circuits: responses.length, statuses: responses.map(r => r.overall_status) } });
+      if (activeChallenge) {
+        const enginePass = combinedEngineResults.every((r:any)=>r.passes);
+        const pythonPass = responses.every(r => r.overall_status === 'PASS' || r.overall_status === 'PASS_WITH_WARNINGS');
+        const passed = !!(enginePass && pythonPass);
+        emitTelemetry({ event_type: 'challenge_result', payload: { challengeId: activeChallenge, passed } });
+        try { const { recordChallengeResult } = await import('../../services/telemetry'); await recordChallengeResult(activeChallenge, passed, 1); } catch {}
+      }
     } catch (e: any) {
       console.error('Validation error', e?.message || e);
       emitTelemetry({ event_type: 'builder_test_error', payload: { message: String(e?.message || e) } });
@@ -346,6 +354,30 @@ const SimpleElectricalBuilder: React.FC = () => {
             <button onClick={onTestCircuit} disabled={testing} className="btn btn-sm btn-success">
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               {testing ? 'Testing...' : 'Test Circuit'}
+            </button>
+            <button
+              onClick={() => {
+                const now = Date.now();
+                const panelId = `panel_${now}`;
+                const breakerId = `circuit_${now}`;
+                const light1Id = `light_${now}`;
+                const light2Id = `light_${now+1}`;
+                setComponents([
+                  { id: panelId, type: 'panel', x: 300, y: 200, label: 'Power Panel', maxAmps: 200 },
+                  { id: breakerId, type: 'circuit', x: 550, y: 200, label: 'Circuit Breaker', maxAmps: 20 },
+                  { id: light1Id, type: 'light', x: 800, y: 150, label: 'Light', amps: 1 },
+                  { id: light2Id, type: 'light', x: 800, y: 250, label: 'Light', amps: 1 },
+                ] as any);
+                setWires([
+                  { id: `w1_${now}`, from: panelId, to: breakerId },
+                  { id: `w2_${now}`, from: breakerId, to: light1Id },
+                  { id: `w3_${now}`, from: breakerId, to: light2Id },
+                ]);
+                setActiveChallenge('demo-two-lights');
+              }}
+              className="btn btn-sm"
+            >
+              Load Demo Challenge
             </button>
             <button
               onClick={async () => {

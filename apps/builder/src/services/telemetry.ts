@@ -32,3 +32,18 @@ function getSessionId(): string {
   return sid
 }
 
+export async function recordChallengeResult(challengeId: string, passed: boolean, attempts: number, durationMs?: number, score?: number, details?: Record<string, any>) {
+  try {
+    const { error } = await supabase.from('challenge_results' as any).insert({
+      challenge_id: challengeId,
+      passed,
+      attempts,
+      duration_ms: durationMs ?? null,
+      score: score ?? null,
+      details: details ?? {},
+    })
+    if (error) console.warn('Failed to record challenge result', error.message)
+  } catch (e) {
+    console.warn('Challenge result error', e)
+  }
+}
