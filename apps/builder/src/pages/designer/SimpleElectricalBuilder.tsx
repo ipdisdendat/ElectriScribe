@@ -6,6 +6,7 @@ import { UniversalNodeEngine } from '../../engine/runtime';
 import { ElectricalPack } from '../../domain/electrical/pack';
 import type { GraphData, NodeInstance, Edge } from '../../engine/types';
 import { compileElectricalRules, fetchEnabledRules } from '../../services/rules';
+import { saveGraph, listGraphs, loadGraph } from '../../services/graphs';
 
 interface Component {
   id: string;
@@ -345,6 +346,44 @@ const SimpleElectricalBuilder: React.FC = () => {
             <button onClick={onTestCircuit} disabled={testing} className="btn btn-sm btn-success">
               {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               {testing ? 'Testing...' : 'Test Circuit'}
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const id = await saveGraph('Quick Save', 'working' as any, toGraph());
+                  alert('Saved graph id: ' + id);
+                } catch (e: any) {
+                  alert('Save failed: ' + (e.message || e));
+                }
+              }}
+              className="btn btn-sm"
+            >
+              Save
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const gs = await listGraphs('working' as any);
+                  if (gs.length) {
+                    const g = await loadGraph(gs[0].id);
+                    setComponents(g.nodes.map((n: any) => ({
+                      id: n.id,
+                      type: (n.type.includes('breaker') ? 'circuit' : n.type.includes('panel') ? 'panel' : n.type.includes('light') ? 'light' : n.type.includes('outlet') ? 'outlet' : n.type.includes('appliance') ? 'appliance' : 'motor') as any,
+                      x: n.x || 400,
+                      y: n.y || 200,
+                      label: (n.type.split('.').pop() || 'Node'),
+                      amps: (n.state?.amps),
+                      maxAmps: (n.state?.maxAmps)
+                    })));
+                    setWires(g.edges.map((e: any) => ({ id: e.id, from: e.from.nodeId, to: e.to.nodeId })));
+                  }
+                } catch (e: any) {
+                  alert('Load failed: ' + (e.message || e));
+                }
+              }}
+              className="btn btn-sm"
+            >
+              Load Last
             </button>
             <div className="form-control">
               <label className="label cursor-pointer gap-2">
