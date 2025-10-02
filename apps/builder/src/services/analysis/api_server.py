@@ -32,6 +32,43 @@ from supabase_electriscribe_bridge import (
     SupabaseElectriScribeBridge,
     RealTimeElectricalMonitor
 )
+import os
+from supabase import create_client, Client
+
+# Optional Supabase client (for dynamic rules)
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY')
+supabase_client: Optional[Client] = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)  # type: ignore
+    except Exception:
+        supabase_client = None
+
+_rules_cache = None
+_rules_cache_ts = 0.0
+_RULES_TTL_S = 60.0
+
+def _load_enabled_rules() -> list[dict]:
+    global _rules_cache, _rules_cache_ts
+    import time
+    now = time.time()
+    if _rules_cache is not None and now - _rules_cache_ts < _RULES_TTL_S:
+        return _rules_cache
+    if not supabase_client:
+        _rules_cache = []
+        _rules_cache_ts = now
+        return _rules_cache
+    try:
+        resp = supabase_client.table('rules_registry').select('*').eq('enabled', True).eq('domain', 'electrical').execute()
+        rows = resp.data or []
+        _rules_cache = rows
+        _rules_cache_ts = now
+        return rows
+    except Exception:
+        _rules_cache = []
+        _rules_cache_ts = now
+        return _rules_cache
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -234,6 +271,25 @@ async def validate_circuit(request: CircuitDataRequest):
             protection_device=protection_device,
             parent_circuit_id=request.parent_circuit_id
         )
+
+        # Apply dynamic rule overrides from Supabase (if available)
+        try:
+            rules = _load_enabled_rules()
+            # Map constraints to analyzer config keys
+            for r in rules:
+                constraint = (r.get('constraint') or '').lower()
+                params = r.get('params') or {}
+                if constraint == 'voltage_drop_limit_percent' and 'value' in params:
+                    electrical_analyzer.config['voltage_drop_limit_percent'] = float(params['value'])
+                if constraint == 'parent_loading_limit_percent' and 'value' in params:
+                    electrical_analyzer.config['parent_loading_limit_percent'] = float(params['value'])
+                if constraint == 'thermal_margin_min_percent' and 'value' in params:
+                    electrical_analyzer.config['thermal_margin_min_percent'] = float(params['value'])
+                if constraint == 'thd_current_limit_percent' and 'value' in params:
+                    electrical_analyzer.config['thd_current_limit_percent'] = float(params['value'])
+        except Exception:
+            # Non-fatal: continue with defaults
+            pass
 
         # Generate integration report
         report = electrical_analyzer.generate_integration_report(circuit)

@@ -187,7 +187,7 @@ class ElectricalSystemAnalyzer:
             'temperature_derating_enabled': True,
             'harmonic_analysis_enabled': True,
             'fault_current_safety_margin': 0.8,  # 80% of device rating
-            'thermal_safety_margin': 0.75,  # 75% of ampacity
+            'thermal_safety_margin': 0.75,  # 75% of ampacity,\n            'parent_loading_limit_percent': 80.0,\n            'thd_current_limit_percent': 20.0,\n            'thermal_margin_min_percent': 20.0
         }
         
     def add_circuit(self, circuit: CircuitData) -> None:
@@ -440,24 +440,22 @@ class ElectricalSystemAnalyzer:
         
         try:
             # 1. Thermal constraints
-            thermal_result = self.analyze_thermal_performance(new_circuit)
-            constraints.append(SystemConstraintCheck(
+            thermal_result = self.analyze_thermal_performance(new_circuit)\n            margin_min = self.config.get('thermal_margin_min_percent', 20.0)\n            constraints.append(SystemConstraintCheck(
                 constraint_name="Conductor Ampacity",
                 current_value=thermal_result.ampacity_derated,
                 limit_value=self.calculate_load_current(new_circuit.loads)['design_current'],
                 margin_percent=thermal_result.thermal_margin_percent,
-                passes_check=thermal_result.thermal_margin_percent > 20,
-                severity_level="critical" if thermal_result.thermal_margin_percent < 0 else "warning" if thermal_result.thermal_margin_percent < 20 else "info",
-                recommendation="Increase wire size or reduce load" if thermal_result.thermal_margin_percent < 20 else "Adequate thermal margin"
+                passes_check=thermal_result.thermal_margin_percent > margin_min,
+                severity_level="critical" if thermal_result.thermal_margin_percent < 0 else "warning" if thermal_result.thermal_margin_percent < margin_min else "info",
+                recommendation="Increase wire size or reduce load" if thermal_result.thermal_margin_percent < margin_min else "Adequate thermal margin"
             ))
             
             # 2. Voltage drop constraints
-            voltage_result = self.analyze_voltage_drop(new_circuit)
-            constraints.append(SystemConstraintCheck(
+            voltage_result = self.analyze_voltage_drop(new_circuit)\n            vlimit = self.config.get('voltage_drop_limit_percent', 3.0)\n            constraints.append(SystemConstraintCheck(
                 constraint_name="Voltage Drop",
                 current_value=voltage_result.voltage_drop_percent,
-                limit_value=self.config['voltage_drop_limit_percent'],
-                margin_percent=(self.config['voltage_drop_limit_percent'] - voltage_result.voltage_drop_percent) / self.config['voltage_drop_limit_percent'] * 100,
+                limit_value=vlimit,
+                margin_percent=(vlimit - voltage_result.voltage_drop_percent) / vlimit * 100,
                 passes_check=voltage_result.meets_code_requirements,
                 severity_level="critical" if not voltage_result.meets_code_requirements else "info",
                 recommendation=f"Upgrade to {voltage_result.recommended_wire_upgrade}" if voltage_result.recommended_wire_upgrade else "Voltage drop acceptable"
@@ -478,28 +476,25 @@ class ElectricalSystemAnalyzer:
                 parent_load_analysis = self.calculate_load_current(all_child_loads)
                 parent_thermal = self.analyze_thermal_performance(parent_circuit)
                 
-                parent_loading_percent = (parent_load_analysis['design_current'] / parent_thermal.ampacity_derated) * 100
-                
-                constraints.append(SystemConstraintCheck(
+                parent_loading_percent = (parent_load_analysis['design_current'] / parent_thermal.ampacity_derated) * 100\n                plimit = self.config.get('parent_loading_limit_percent', 80.0)\n                constraints.append(SystemConstraintCheck(
                     constraint_name="Parent Circuit Loading",
                     current_value=parent_loading_percent,
-                    limit_value=80.0,  # 80% loading limit
-                    margin_percent=(80.0 - parent_loading_percent),
-                    passes_check=parent_loading_percent <= 80.0,
-                    severity_level="critical" if parent_loading_percent > 100 else "warning" if parent_loading_percent > 80 else "info",
-                    recommendation="Upgrade parent circuit or redistribute loads" if parent_loading_percent > 80 else "Parent circuit adequate"
+                    limit_value=plimit,  # Loading limit
+                    margin_percent=(plimit - parent_loading_percent),
+                    passes_check=parent_loading_percent <= plimit,
+                    severity_level="critical" if parent_loading_percent > 100 else "warning" if parent_loading_percent > plimit else "info",
+                    recommendation="Upgrade parent circuit or redistribute loads" if parent_loading_percent > plimit else "Parent circuit adequate"
                 ))
             
             # 4. Harmonic distortion constraints
-            harmonic_result = self.analyze_harmonic_distortion(new_circuit.loads)
-            constraints.append(SystemConstraintCheck(
+            harmonic_result = self.analyze_harmonic_distortion(new_circuit.loads)\n            thd_limit = self.config.get('thd_current_limit_percent', 20.0)\n            constraints.append(SystemConstraintCheck(
                 constraint_name="Current THD",
                 current_value=harmonic_result.thd_current_percent,
-                limit_value=20.0,  # IEEE 519 guideline
-                margin_percent=(20.0 - harmonic_result.thd_current_percent) / 20.0 * 100,
-                passes_check=harmonic_result.thd_current_percent <= 20.0,
-                severity_level="warning" if harmonic_result.thd_current_percent > 20 else "info",
-                recommendation="Consider harmonic filtering" if harmonic_result.thd_current_percent > 20 else "Harmonic levels acceptable"
+                limit_value=thd_limit,  # IEEE 519 guideline baseline
+                margin_percent=(thd_limit - harmonic_result.thd_current_percent) / thd_limit * 100,
+                passes_check=harmonic_result.thd_current_percent <= thd_limit,
+                severity_level="warning" if harmonic_result.thd_current_percent > thd_limit else "info",
+                recommendation="Consider harmonic filtering" if harmonic_result.thd_current_percent > thd_limit else "Harmonic levels acceptable"
             ))
             
         finally:
@@ -718,3 +713,8 @@ if __name__ == "__main__":
     
     for recommendation in report['recommendations']:
         print(f"- {recommendation}")
+
+
+
+
+
