@@ -1,4 +1,16 @@
-import type { SystemStateRequest } from './python-analysis-client';
+// Type definitions (extracted from archived python-analysis-client)
+export interface SystemStateRequest {
+  service_rating: number;
+  current_load: number;
+  num_circuits: number;
+  phase_balance_ratio: number;
+  temperature_rise: number;
+  voltage_drop_percent: number;
+  harmonic_thd_percent: number;
+  power_factor: number;
+  utilization_factor: number;
+  timestamp: number;
+}
 
 export interface ElectricalNode {
   id: string;
