@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { fieldNotesParser, type ParsedFieldNotes, type ParsedPanel, type ParsedCircuit, type ParsedLoad, type ParsedIssue } from '../../services/field-notes-parser';
 import { fieldNotesPersistence } from '../../services/field-notes-persistence';
-import { enhancedOrchestrator } from '../../services/enhanced-task-orchestrator';
 import { FileText, Download, Zap, AlertTriangle, CheckCircle, Save, Loader, Database, X } from 'lucide-react';
 
 interface ElectricalEntity {
@@ -196,24 +195,15 @@ Garage circuit feels warm at panel - possible overload condition.`;
       const mainPanel = parsed.panels.find(p => p.panel_type === 'main');
       const panelRating = mainPanel?.rating || 200;
 
-      // Run validation through Python orchestrator
-      const result = await enhancedOrchestrator.validateCircuitWithPython({
-        circuit_id: 'system_overall',
-        load_watts: totalLoad * 240,
-        voltage: 240,
-        wire_gauge: 2, // Service wire
-        wire_length_feet: 50,
-        environment_temp_c: 30,
-        num_current_carrying_conductors: parsed.circuits.length,
-        conduit_type: 'PVC',
-        installation_method: 'conduit'
-      });
+      // Basic validation (advanced validation will be added in Phase 5)
+      const utilization = totalLoad / panelRating;
+      const passes = utilization <= 0.8;
 
       setValidationResult({
-        passes_check: result.passes_check,
-        holistic_score: result.holistic_score,
-        constraint_violations: result.constraint_violations,
-        message: result.message
+        passes_check: passes,
+        message: passes
+          ? `System load: ${totalLoad}A / ${panelRating}A (${(utilization * 100).toFixed(1)}% utilization)`
+          : `Warning: System load ${totalLoad}A exceeds safe capacity (${panelRating * 0.8}A)`
       });
     } catch (error) {
       console.error('Validation error:', error);
