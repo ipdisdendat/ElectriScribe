@@ -2,8 +2,8 @@
 
 **Refactoring Branch:** `claude/opinions-feature-011CUnPBT8qPn3h5NWBk5Y9c`
 **Start Date:** 2025-11-16
-**Current Status:** Phase 3a Complete ✅
-**Completion:** 60% (3 of 5 phases complete)
+**Current Status:** Phase 4 In Progress 🔄
+**Completion:** 75% (Phase 4 services complete, components pending)
 
 ---
 
@@ -198,54 +198,100 @@ mwbc_configurations    -- MWBC safety detection
 
 ---
 
-## Pending Phases
-
-### ⏳ Phase 3b: Focus UI (In Progress - Next)
+### ✅ Phase 3b: Focus UI (Commit: TBD)
 
 **Goal:** Create 3 focused MVP pages for core workflow.
 
-**Planned Actions:**
-- Create `src/pages/PanelListPage.tsx` - View all documented panels
-- Create `src/pages/PanelDocumentationPage.tsx` - Camera → OCR → Edit → Save (main workflow)
-- Create `src/pages/PanelDetailPage.tsx` - View/edit existing panel
-- Update `App.tsx` routing:
-  ```tsx
-  <Routes>
-    <Route path="/" element={<PanelListPage />} />
-    <Route path="/panel/new" element={<PanelDocumentationPage />} />
-    <Route path="/panel/:id" element={<PanelDetailPage />} />
-  </Routes>
-  ```
-- Update `Layout.tsx` navigation for 3 routes
+**Actions Taken:**
+- Created `src/pages/panels/PanelListPage.tsx` - View all documented panels
+- Created `src/pages/panels/PanelDocumentationPage.tsx` - Camera → OCR → Edit → Save (main workflow)
+- Created `src/pages/panels/PanelDetailPage.tsx` - View/edit existing panel
+- Updated `App.tsx` routing with 3 focused routes
+- Preserved old ElectriScribeDesigner at `/designer` for reference
 
-**Estimated Completion:** Week 3 (current week)
+**Routes:**
+```tsx
+<Route path="/" element={<PanelListPage />} />
+<Route path="/panel/new" element={<PanelDocumentationPage />} />
+<Route path="/panel/:id" element={<PanelDetailPage />} />
+<Route path="/designer" element={<ElectriScribeDesigner />} /> {/* Reference */}
+```
+
+**Result:**
+✅ 3 focused MVP pages created
+✅ Clean routing structure
+✅ Foundation for Phase 4 features
+✅ Old designer preserved for development reference
 
 ---
 
-### 📋 Phase 4: Add MVP Features (Weeks 4-5)
+### 🔄 Phase 4: Add MVP Features (In Progress)
 
 **Goal:** Implement core "take photo → full panel schedule" functionality.
 
-**Planned Services:**
-- `src/services/camera.ts` - Camera API wrapper (navigator.mediaDevices)
-- `src/services/ocr-processor.ts` - PaddleOCR integration (scaffolding)
-- `src/services/offline-database.ts` - Dexie.js/WatermelonDB setup
-- `src/services/sync-manager.ts` - Last-Write-Wins sync pattern
-- `src/services/photo-storage.ts` - Local storage + compression
+**Services Created (5 of 5):**
+- ✅ `src/services/camera.ts` - Camera API wrapper (navigator.mediaDevices)
+  - Camera stream management
+  - Photo capture from video
+  - Front/back camera switching
+  - Permission handling
+- ✅ `src/services/offline-database.ts` - Dexie.js IndexedDB setup
+  - 7-table offline schema matching Supabase
+  - CRUD operations for panels, circuits, photos, notes
+  - Sync status tracking
+  - Database statistics
+- ✅ `src/services/photo-storage.ts` - Photo compression + thumbnails
+  - JPEG compression (target 350KB per original)
+  - Thumbnail generation (target 25KB per thumb)
+  - Image rotation and cropping
+  - Size estimation utilities
+- ✅ `src/services/ocr-processor.ts` - OCR scaffolding (placeholder)
+  - Interface for future PaddleOCR integration
+  - Mock mode for MVP (manual entry)
+  - Options for cloud API or local processing
+  - Integration notes for Phase 5
+- ✅ `src/services/sync-manager.ts` - Last-Write-Wins cloud sync
+  - Automatic sync when online
+  - Background sync interval (30s)
+  - Conflict detection and resolution
+  - Network status monitoring
+  - Sync status tracking
 
-**Planned Components:**
-- `src/components/camera/CameraCapture.tsx` - Camera UI with preview
-- `src/components/panel/PanelScheduleEditor.tsx` - Editable breaker grid
-- `src/components/panel/PanelPhotoViewer.tsx` - Photo viewer with zoom
+**Hooks Created (2 of 3):**
+- ✅ `src/hooks/useCamera.ts` - Camera capture hook
+  - React hook for camera access
+  - State management for camera stream
+  - Error handling and permissions
+  - Cleanup on unmount
+- ✅ `src/hooks/useOfflineStorage.ts` - Offline database hook
+  - Live queries with Dexie React hooks
+  - Panel/circuit/photo/note operations
+  - Sync status tracking
+  - Database statistics
+- ⏳ `src/hooks/useOCR.ts` - OCR processing hook (pending)
 
-**Planned Hooks:**
-- `src/hooks/useCamera.ts` - Camera capture hook
-- `src/hooks/useOfflineStorage.ts` - Offline database hook
-- `src/hooks/useOCR.ts` - OCR processing hook
+**Dependencies Added:**
+- ✅ `dexie` (^4.0.1) - IndexedDB wrapper
+- ✅ `dexie-react-hooks` (^1.1.7) - React integration
 
-**Target:** Functional offline-first panel documentation workflow
+**Components Pending:**
+- ⏳ `src/components/camera/CameraCapture.tsx` - Camera UI with preview
+- ⏳ `src/components/panel/PanelScheduleEditor.tsx` - Editable breaker grid
+- ⏳ `src/components/panel/PanelPhotoViewer.tsx` - Photo viewer with zoom
+
+**Progress:** 70% complete (services done, components and integration pending)
+
+**Next Steps:**
+1. Create camera capture component
+2. Create panel schedule editor
+3. Create photo viewer component
+4. Create useOCR hook
+5. Integrate services into pages
+6. Test offline workflow
 
 ---
+
+## Pending Phases
 
 ### 🧪 Phase 5: Test & Polish (Week 6)
 
