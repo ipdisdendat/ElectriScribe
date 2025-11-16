@@ -24,6 +24,7 @@ A sophisticated electrical system design and analysis platform featuring multi-d
 - **Supabase Backend**: Real-time database with Row Level Security
 - **Task Orchestration**: Self-correcting execution with token optimization
 - **Markov Analysis**: State transition prediction for system behavior
+- **Session Teleport**: Time-travel recovery system for inspecting and resuming previous sessions
 
 ## 🚀 Quick Start
 
@@ -82,9 +83,27 @@ npm run dev
 
 ## 📚 Documentation
 
+- [Session Teleport Guide](./docs/SESSION_TELEPORT.md) - Time-travel recovery and session inspection
 - [Python API Setup](./PYTHON_API_SETUP.md) - Detailed Python service configuration
 - [Database Schema](./supabase/migrations/) - Supabase table definitions
 - [API Documentation](http://localhost:8000/docs) - Interactive API explorer (when running)
+
+### Session Teleport
+
+Recover and inspect previous execution sessions:
+
+```bash
+# List all available sessions
+npm run teleport list
+
+# Teleport to a specific session
+npm run teleport session_011CUnPBT8qPn3h5NWBk5Y9c
+
+# Show help
+npm run teleport --help
+```
+
+See the [Session Teleport Guide](./docs/SESSION_TELEPORT.md) for detailed documentation.
 
 ## 🏗️ Project Structure
 
