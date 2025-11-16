@@ -57,6 +57,11 @@ This directory contains features and components that have been archived to focus
 #### Overlays (`components/task-overlay/`)
 - **TaskOverlay.tsx** - Task management overlay interface
 
+### Hooks (1 file)
+
+#### Electrical Validation (`hooks/`)
+- **useElectricalValidation.ts** - React hook for electrical validation using task orchestration (depends on archived task-agents)
+
 ## Why Archived
 
 These features were archived to:
@@ -190,9 +195,11 @@ src/archive/
 │       ├── index.ts
 │       ├── electrical-validation-agent.ts
 │       └── database-query-agent.ts
-└── components/
-    └── task-overlay/
-        └── TaskOverlay.tsx
+├── components/
+│   └── task-overlay/
+│       └── TaskOverlay.tsx
+└── hooks/
+    └── useElectricalValidation.ts
 ```
 
 ## Maintenance
@@ -212,4 +219,4 @@ For questions about archived features or restoration requests, consult:
 ---
 
 **Last Updated:** 2025-11-16
-**Total Files Archived:** 23 (10 pages + 12 services + 1 component)
+**Total Files Archived:** 24 (10 pages + 12 services + 1 component + 1 hook)
