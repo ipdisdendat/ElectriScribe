@@ -1,5 +1,16 @@
-import { enhancedOrchestrator } from './enhanced-task-orchestrator';
-import type { SystemStateRequest } from './python-analysis-client';
+// Type definitions (extracted from archived python-analysis-client)
+export interface SystemStateRequest {
+  service_rating: number;
+  current_load: number;
+  num_circuits: number;
+  phase_balance_ratio: number;
+  temperature_rise: number;
+  voltage_drop_percent: number;
+  harmonic_thd_percent: number;
+  power_factor: number;
+  utilization_factor: number;
+  timestamp: number;
+}
 
 export interface ElectricalNode {
   id: string;
@@ -64,36 +75,21 @@ export class EnhancedElectricalAnalysisEngine {
       return basicAnalysis;
     }
 
-    try {
-      const systemState = this.convertToSystemState(nodes, connections, basicAnalysis);
-      const holisticValidation = await enhancedOrchestrator.validateCircuitWithPython({
-        circuit_id: 'designer_preview',
-        load_watts: basicAnalysis.totalLoad * 240,
-        voltage: 240,
-        wire_gauge: this.getMostCommonWireGauge(connections),
-        wire_length_feet: this.calculateAverageWireLength(connections),
-        environment_temp_c: 30,
-        num_current_carrying_conductors: connections.length,
-        conduit_type: 'PVC',
-        installation_method: 'conduit',
-      });
-
-      return this.mergeAnalyses(basicAnalysis, holisticValidation, systemState);
-    } catch (error) {
-      console.warn('Python holistic validation unavailable, using basic analysis:', error);
-      this.pythonAvailable = false;
-      return {
-        ...basicAnalysis,
-        pythonValidationStatus: 'offline',
-        analysis: [
-          ...basicAnalysis.analysis,
-          {
-            type: 'warning',
-            message: 'Advanced validation offline - basic checks only',
-          },
-        ],
-      };
-    }
+    // Advanced validation will be added in Phase 5 (PaddleOCR + EPINN integration)
+    // For now, return basic analysis with offline status
+    console.warn('Advanced validation not yet implemented - using basic analysis');
+    this.pythonAvailable = false;
+    return {
+      ...basicAnalysis,
+      pythonValidationStatus: 'offline',
+      analysis: [
+        ...basicAnalysis.analysis,
+        {
+          type: 'warning',
+          message: 'Advanced validation offline - basic checks only',
+        },
+      ],
+    };
   }
 
   private performBasicAnalysis(
