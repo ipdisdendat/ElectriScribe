@@ -31,7 +31,7 @@ This directory contains features and components that have been archived to focus
 #### Analysis (`pages/analysis/`)
 - **AnalysisPage.tsx** - Advanced electrical system analysis dashboard
 
-### Services (12 files)
+### Services (13 files)
 
 #### Task Orchestration
 - **task-orchestrator.ts** - Original task orchestration service
@@ -52,10 +52,16 @@ This directory contains features and components that have been archived to focus
 - **token-optimizer.ts** - LLM token usage optimization
 - **test-harness.ts** - Testing framework for electrical calculations
 
-### Components (1 file)
+#### Python Backend Integration (Phase 3)
+- **python-analysis-client.ts** - TypeScript client for Python FastAPI backend (3,136 lines of NEC validation code). Archived in Phase 3 as part of complexity reduction.
+
+### Components (2 files)
 
 #### Overlays (`components/task-overlay/`)
 - **TaskOverlay.tsx** - Task management overlay interface
+
+#### Field Notes (`components/field-notes/`)
+- **FieldNotesProcessor.tsx** - Python backend field notes processor component (unused, depends on archived Python API client). Archived in Phase 3.
 
 ### Hooks (1 file)
 
@@ -190,14 +196,17 @@ src/archive/
 │   ├── self-correction-engine.ts
 │   ├── token-optimizer.ts
 │   ├── test-harness.ts
+│   ├── python-analysis-client.ts
 │   └── task-agents/
 │       ├── base-agent.ts
 │       ├── index.ts
 │       ├── electrical-validation-agent.ts
 │       └── database-query-agent.ts
 ├── components/
-│   └── task-overlay/
-│       └── TaskOverlay.tsx
+│   ├── task-overlay/
+│   │   └── TaskOverlay.tsx
+│   └── field-notes/
+│       └── FieldNotesProcessor.tsx
 └── hooks/
     └── useElectricalValidation.ts
 ```
@@ -219,4 +228,4 @@ For questions about archived features or restoration requests, consult:
 ---
 
 **Last Updated:** 2025-11-16
-**Total Files Archived:** 24 (10 pages + 12 services + 1 component + 1 hook)
+**Total Files Archived:** 26 (10 pages + 13 services + 2 components + 1 hook)
